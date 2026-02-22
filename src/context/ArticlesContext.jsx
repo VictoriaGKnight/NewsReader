@@ -1,48 +1,71 @@
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from "react";
+import { useAuth } from "./AuthContext";
 
-// ⚠️ SECURITY ISSUE: This context is shared globally with no user authentication
-// All users see the same saved articles!
-const ArticlesContext = createContext();
+const ArticlesContext = createContext(null);
+
+export function useArticles() {
+  const ctx = useContext(ArticlesContext);
+  if (!ctx) throw new Error("useArticles must be used within ArticlesProvider");
+  return ctx;
+}
 
 export function ArticlesProvider({ children }) {
-  const [savedArticles, setSavedArticles] = useState([]);
+   const getAllUserArticles = () => savedArticlesByUser;
+
+  const { user } = useAuth();
+
+  const [savedArticlesByUser, setSavedArticlesByUser] = useState({});
+
+  const getUserSavedArticles = () => {
+    if (!user) return [];
+    return savedArticlesByUser[user.username] || [];
+  };
 
   const saveArticle = (article) => {
-    setSavedArticles(prev => {
-      // Check if article is already saved
-      if (prev.find(a => a.url === article.url)) {
-        return prev;
-      }
-      return [...prev, article];
+    if (!user) return;
+
+    setSavedArticlesByUser((prev) => {
+      const current = prev[user.username] || [];
+      const alreadySaved = current.some((a) => a.url === article.url);
+      if (alreadySaved) return prev;
+
+      return {
+        ...prev,
+        [user.username]: [...current, article],
+      };
     });
   };
 
-  const removeArticle = (url) => {
-    setSavedArticles(prev => prev.filter(a => a.url !== url));
+  const removeArticle = (articleUrl) => {
+    if (!user) return;
+
+    setSavedArticlesByUser((prev) => {
+      const current = prev[user.username] || [];
+      return {
+        ...prev,
+        [user.username]: current.filter((a) => a.url !== articleUrl),
+      };
+    });
   };
 
-  const isArticleSaved = (url) => {
-    return savedArticles.some(a => a.url === url);
+  const isArticleSaved = (articleUrl) => {
+    if (!user) return false;
+    return (savedArticlesByUser[user.username] || []).some((a) => a.url === articleUrl);
   };
+
 
   return (
-    <ArticlesContext.Provider 
-      value={{ 
-        savedArticles, 
-        saveArticle, 
-        removeArticle, 
-        isArticleSaved 
+    <ArticlesContext.Provider
+      value={{
+        savedArticlesByUser,
+        getUserSavedArticles,
+        getAllUserArticles,
+        saveArticle,
+        removeArticle,
+        isArticleSaved,
       }}
     >
       {children}
     </ArticlesContext.Provider>
   );
-};
-
-export const useArticles = () => {
-  const context = useContext(ArticlesContext);
-  if (!context) {
-    throw new Error('useArticles must be used within ArticlesProvider');
-  }
-  return context;
-};
+}

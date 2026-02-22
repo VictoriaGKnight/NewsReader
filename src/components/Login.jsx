@@ -15,17 +15,13 @@ function Login() {
     e.preventDefault();
     setError('');
 
-    // Basic validation
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password');
       return;
     }
 
-    // Mock authentication - accepts any username/password
-    // In a real app, this would validate against a backend
     try {
       login(username, password, selectedRole);
-      // Redirect to saved articles after successful login
       navigate('/saved');
     } catch (err) {
       setError('Login failed. Please try again.');
@@ -71,7 +67,7 @@ function Login() {
               onChange={(e) => setSelectedRole(e.target.value)}
             >
               <option value="regular">Regular User</option>
-              <option value="premium">Premium User</option>
+              <option value="admin">Premium User</option>
             </select>
           </div>
 
